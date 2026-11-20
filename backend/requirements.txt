@@ -1,0 +1,8 @@
+litellm==1.110.2
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.4
+# LiteLLM 1.110.2's cache-hit path imports proxy modules that need these two,
+# but they are not in its base dependencies. Without them every cache hit raises.
+orjson==3.13.0
+soundfile==0.14.0
