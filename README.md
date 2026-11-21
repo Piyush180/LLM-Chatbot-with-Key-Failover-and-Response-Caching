@@ -153,3 +153,4 @@ curl -s -i -X POST $B/chat -H 'Content-Type: application/json' -d '{"session_id"
 ## 6. Bonus features (if any)
 
 * **"New chat" button**: starts a new session (a new client-generated `session_id`) without reloading the page. This makes it quick to show that sessions stay separate and that the same first message in a new session is a cache hit.
+* **Markdown replies**: assistant messages are rendered as Markdown (bold, lists, code, tables) with `react-markdown` + `remark-gfm`. Raw HTML in a reply is never rendered and unsafe link protocols are dropped, so it stays XSS-safe. The API and SQLite keep the exact reply text.
