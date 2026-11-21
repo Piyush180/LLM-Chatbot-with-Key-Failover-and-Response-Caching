@@ -56,7 +56,7 @@ def provider(monkeypatch: pytest.MonkeyPatch) -> FakeProvider:
 def make_settings(tmp_path, **overrides) -> Settings:
     values = dict(
         api_keys=KEYS,
-        model="gemini/gemini-2.0-flash",
+        model="gemini/gemini-2.5-flash",
         database_path=str(tmp_path / "app.db"),
         allowed_origins=["http://localhost:3000"],
         enable_failure_simulation=True,

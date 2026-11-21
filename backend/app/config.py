@@ -36,7 +36,7 @@ def sqlite_path_from_url(url: str) -> str:
 @dataclass(frozen=True)
 class Settings:
     api_keys: list[str] = field(default_factory=list)
-    model: str = "gemini/gemini-2.0-flash"
+    model: str = "gemini/gemini-2.5-flash"
     database_path: str = "./data/app.db"
     allowed_origins: list[str] = field(default_factory=list)
     enable_failure_simulation: bool = False
@@ -50,7 +50,7 @@ class Settings:
         )
         return cls(
             api_keys=_split_csv(os.getenv("LLM_API_KEYS")),
-            model=os.getenv("LLM_MODEL", "gemini/gemini-2.0-flash").strip(),
+            model=os.getenv("LLM_MODEL", "gemini/gemini-2.5-flash").strip(),
             database_path=database_path,
             allowed_origins=_split_csv(
                 os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
