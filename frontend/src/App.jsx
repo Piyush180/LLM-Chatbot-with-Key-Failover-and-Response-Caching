@@ -1,10 +1,22 @@
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { newSessionId, sendChat } from "./api.js";
+
+// Replies are Markdown. react-markdown never renders raw HTML from the text
+// and drops unsafe link protocols (javascript: etc.), so this stays XSS-safe.
+const markdownComponents = {
+  a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+};
 
 function AssistantMessage({ reply, metadata }) {
   return (
     <div className="msg assistant" data-testid="assistant-message">
-      <div className="msg-text">{reply}</div>
+      <div className="msg-text markdown">
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+          {reply}
+        </ReactMarkdown>
+      </div>
       <div className="meta">
         <span className={`badge ${metadata.resolution_source === "LLM_CACHE" ? "cache" : "live"}`}>
           <span data-testid="meta-source">{metadata.resolution_source}</span>
