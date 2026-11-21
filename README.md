@@ -19,7 +19,7 @@ render.yaml          Render blueprint for the backend
 | Backend (Render) | `https://<your-service>.onrender.com` |
 | Health check | `https://<your-service>.onrender.com/health` |
 
-> The backend runs on Render's free plan. The free plan has no persistent disk and sleeps after ~15 minutes idle; a sleep or redeploy would reset both the in-memory LLM cache and the SQLite file. To keep the live demo stateful, an uptime monitor calls `/health` every 5 minutes so the service never sleeps, and `render.yaml` uses a `buildFilter` so only changes under `backend/` trigger a redeploy. Locally (`make up`) the SQLite file is on the named volume `app-data` and survives restarts.
+> Backend on Render's free plan, which has no persistent disk and sleeps after ~15 min idle (a sleep or redeploy resets the in-memory cache and the SQLite file). An uptime monitor pings `/health` every 5 min so it never sleeps, and a `buildFilter` in `render.yaml` redeploys only on `backend/` changes. Locally, SQLite sits on the named volume `app-data` and survives restarts.
 
 ## 2. Run locally
 
@@ -103,8 +103,8 @@ VITE_API_URL=http://localhost:8000 npm run dev          # http://localhost:3000
 
 ### Errors
 Every error is JSON with `detail`: 422 from FastAPI validation (missing, empty or whitespace-only fields, `message` or `system_prompt` over 4000 characters after trimming, `session_id` over 128 characters, malformed JSON), 503 when every key failed, 404 for an unknown session or route, and a generic `500 {"detail": "internal server error"}` catch-all, never a stack trace. The UI turns each of these into a readable red message in the chat.
-
-Only the three contract endpoints exist: FastAPI's built-in `/docs`, `/redoc` and `/openapi.json` are switched off, so every other path is a JSON 404. `system_prompt` is capped at 4000 characters like `message`, so an oversized prompt is rejected with 422 before any key is spent, instead of the provider rejecting it on every key and the user seeing a misleading 503.
+* `system_prompt` is capped at 4000 characters like `message`, so an oversized prompt is a 422 before any key is spent, not a provider rejection on every key that would surface as a misleading 503.
+* Only the three contract endpoints exist: FastAPI's `/docs`, `/redoc` and `/openapi.json` are switched off, so any other path is a JSON 404.
 
 ## 4. Verification
 
@@ -146,7 +146,7 @@ curl -s -i -X POST $B/chat -H 'Content-Type: application/json' -d '{"session_id"
 
 **In the UI:** each assistant reply shows its own `resolution_source` (green `LIVE_INFERENCE` / amber `LLM_CACHE`), model, latency in ms, and input/output tokens. These are the numbers for that request only, never a running total. Send a message, reload the page (a new session starts) and send the same message again to see `LLM_CACHE` with a lower latency. Ask a follow-up question to see multi-turn memory; the input tokens grow as the history grows.
 
-**Automated:** `make test` (or `pytest -q` in `backend/`) runs 40+ tests. They cover the contract shapes, cache hit/miss rules (history, system prompt, answers from a fallback key), per-request tokens, multi-turn, session separation, history and 404, every 422 case, simulated and real failover, and 503 with nothing stored. The real LiteLLM pipeline and cache run in the tests; only the network call is replaced by LiteLLM's `mock_response`.
+**Automated:** `make test` (or `pytest -q` in `backend/`) runs 45 tests. They cover the contract shapes, cache hit/miss rules (history, system prompt, answers from a fallback key), per-request tokens, multi-turn, session separation, history and 404, every 422 case, simulated and real failover, and 503 with nothing stored. The real LiteLLM pipeline and cache run in the tests; only the network call is replaced by LiteLLM's `mock_response`.
 
 ## 5. Setup Used
 
