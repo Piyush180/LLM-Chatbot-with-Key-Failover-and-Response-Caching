@@ -37,7 +37,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         yield
 
-    app = FastAPI(title="LLM Chatbot", lifespan=lifespan)
+    # The contract allows exactly three endpoints, so FastAPI's built-in
+    # /docs, /redoc and /openapi.json are switched off.
+    app = FastAPI(title="LLM Chatbot", lifespan=lifespan,
+                  docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings = settings
     app.state.db = db
     app.state.pool = pool

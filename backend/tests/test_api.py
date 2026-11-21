@@ -183,6 +183,26 @@ def test_invalid_requests_are_422(client, payload):
     assert "detail" in res.json()
 
 
+def test_system_prompt_over_4000_chars_is_422_and_spends_no_key(client, provider):
+    res = chat(client, "s-1", "hi", system_prompt="p" * 4001)
+    assert res.status_code == 422
+    assert provider.calls == []
+    assert client.get("/sessions/s-1/messages").status_code == 404
+
+
+def test_system_prompt_trimmed_before_length_check(client, provider):
+    res = chat(client, "s-1", "hi", system_prompt="  " + "p" * 4000 + "  ")
+    assert res.status_code == 200
+    assert provider.calls[-1]["messages"][0]["content"] == "p" * 4000
+
+
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
+def test_only_contract_endpoints_are_exposed(client, path):
+    res = client.get(path)
+    assert res.status_code == 404
+    assert res.json() == {"detail": "Not Found"}
+
+
 def test_message_trimmed_before_length_check(client):
     res = chat(client, "s-1", "  " + "x" * 4000 + "  ")
     assert res.status_code == 200

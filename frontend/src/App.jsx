@@ -99,6 +99,7 @@ export default function App() {
         <textarea
           data-testid="system-prompt-input"
           rows={2}
+          maxLength={4000}
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
           placeholder="e.g. You are a pirate. Answer in one sentence."

@@ -101,7 +101,9 @@ VITE_API_URL=http://localhost:8000 npm run dev          # http://localhost:3000
 * A session "exists" once it has at least one stored message; otherwise `GET /sessions/{id}/messages` → `404 {"detail": "session not found"}`.
 
 ### Errors
-Every error is JSON with `detail`: 422 from FastAPI validation (missing, empty or whitespace-only fields, `message` over 4000 characters after trimming, `session_id` over 128 characters, malformed JSON), 503 when every key failed, 404 for an unknown session or route, and a generic `500 {"detail": "internal server error"}` catch-all, never a stack trace. The UI turns each of these into a readable red message in the chat.
+Every error is JSON with `detail`: 422 from FastAPI validation (missing, empty or whitespace-only fields, `message` or `system_prompt` over 4000 characters after trimming, `session_id` over 128 characters, malformed JSON), 503 when every key failed, 404 for an unknown session or route, and a generic `500 {"detail": "internal server error"}` catch-all, never a stack trace. The UI turns each of these into a readable red message in the chat.
+
+Only the three contract endpoints exist: FastAPI's built-in `/docs`, `/redoc` and `/openapi.json` are switched off, so every other path is a JSON 404. `system_prompt` is capped at 4000 characters like `message`, so an oversized prompt is rejected with 422 before any key is spent, instead of the provider rejecting it on every key and the user seeing a misleading 503.
 
 ## 4. Verification
 

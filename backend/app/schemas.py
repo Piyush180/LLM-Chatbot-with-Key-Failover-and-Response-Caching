@@ -10,7 +10,9 @@ from pydantic import BaseModel, Field, field_validator
 class ChatRequest(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=128)
     message: str = Field(..., min_length=1, max_length=4000)
-    system_prompt: str | None = None
+    # Capped like `message`, so an oversized prompt is a 422 instead of a
+    # provider rejection that would burn every key and end in a 503.
+    system_prompt: str | None = Field(None, max_length=4000)
 
     @field_validator("session_id")
     @classmethod
@@ -25,12 +27,15 @@ class ChatRequest(BaseModel):
     def _trim_message(cls, value: object) -> object:
         return value.strip() if isinstance(value, str) else value
 
-    @field_validator("system_prompt")
+    # mode="before": trim first, so the 4000 limit applies to the trimmed text;
+    # blank means "no override".
+    @field_validator("system_prompt", mode="before")
     @classmethod
-    def _empty_prompt_is_none(cls, value: str | None) -> str | None:
-        if value is None or not value.strip():
-            return None
-        return value.strip()
+    def _trim_prompt(cls, value: object) -> object:
+        if isinstance(value, str):
+            value = value.strip()
+            return value or None
+        return value
 
 
 class ChatMetadata(BaseModel):
