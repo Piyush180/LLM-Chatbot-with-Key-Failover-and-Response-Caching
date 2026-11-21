@@ -19,7 +19,7 @@ render.yaml          Render blueprint for the backend
 | Backend (Render) | `https://<your-service>.onrender.com` |
 | Health check | `https://<your-service>.onrender.com/health` |
 
-> The backend runs on Render's free plan: the first request after ~15 minutes idle wakes the service (~30–60 s).
+> The backend runs on Render's free plan. The free plan has no persistent disk and sleeps after ~15 minutes idle; a sleep or redeploy would reset both the in-memory LLM cache and the SQLite file. To keep the live demo stateful, an uptime monitor calls `/health` every 5 minutes so the service never sleeps, and `render.yaml` uses a `buildFilter` so only changes under `backend/` trigger a redeploy. Locally (`make up`) the SQLite file is on the named volume `app-data` and survives restarts.
 
 ## 2. Run locally
 
@@ -70,6 +70,7 @@ VITE_API_URL=http://localhost:8000 npm run dev          # http://localhost:3000
 ### Deploying
 
 * **Backend → Render**: New → Blueprint → pick this repo (`render.yaml`). Set the secret values `LLM_API_KEYS` and `ALLOWED_ORIGINS` (the Vercel URL) in the dashboard. `ENABLE_FAILURE_SIMULATION=true` is already set.
+* **Keep-alive**: an HTTP monitor (e.g. UptimeRobot, free) on `https://<backend>/health` every 5 minutes keeps the free instance awake, so the cache and history are not reset by sleeping.
 * **Frontend → Vercel**: import the repo with **Root Directory** `frontend` (Vite preset). Set `VITE_API_URL` to the Render URL, then deploy.
 
 ## 3. Design decisions
