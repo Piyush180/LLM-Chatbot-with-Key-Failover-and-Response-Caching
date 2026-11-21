@@ -285,3 +285,12 @@ def test_parse_simulation_header():
     assert parse_simulation_header("*=503") == {"*": 503}
     assert parse_simulation_header("key_1=404,garbage,=500,key_2=abc") == {}
     assert parse_simulation_header(None) == {}
+
+
+# ---------------------------------------------------------------- startup cache warm-up
+
+def test_warm_up_leaves_cache_empty_and_spends_no_key(client, provider):
+    # the warm-up ran at startup; its entry must be gone and no provider call made
+    assert provider.calls == []
+    res = chat(client, "s-1", "__cache_warm_up__").json()
+    assert res["metadata"]["resolution_source"] == "LIVE_INFERENCE"

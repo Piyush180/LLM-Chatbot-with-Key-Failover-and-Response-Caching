@@ -12,6 +12,7 @@ Flow for one request:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -55,6 +56,39 @@ class LLMResult:
 def enable_cache() -> None:
     """Turn on LiteLLM's built-in in-memory response cache."""
     litellm.cache = Cache(type="local")
+
+
+# Captured at import so the warm-up always uses LiteLLM itself (tests patch
+# litellm.acompletion to fake the provider).
+_litellm_acompletion = litellm.acompletion
+
+
+async def warm_up_cache(model: str) -> None:
+    """Run one store + one hit through LiteLLM's cache path, then empty the cache.
+
+    LiteLLM imports its cache-hit code lazily, so the first real cache hit after
+    a start used to take ~1 s on a small instance (slower than a live call).
+    `mock_response` means no network call and no API key is used. Any failure
+    here is logged and ignored: warm-up is an optimisation, never a hard error.
+    """
+    messages = [{"role": "user", "content": "__cache_warm_up__"}]
+    kwargs = dict(model=model, messages=messages, api_key="warm-up",
+                  mock_response="ok", caching=True)
+    try:
+        # LiteLLM writes the cache entry in a background task, so keep calling
+        # (briefly) until one call is a real hit. That hit loads the lazy code.
+        for _ in range(40):
+            response = await _litellm_acompletion(**kwargs)
+            if (getattr(response, "_hidden_params", None) or {}).get("cache_hit"):
+                break
+            await asyncio.sleep(0.05)
+        else:
+            logger.warning("cache warm-up: no cache hit observed")
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("cache warm-up skipped (%s)", type(exc).__name__)
+    finally:
+        if litellm.cache is not None:
+            litellm.cache.cache.flush_cache()
 
 
 def parse_simulation_header(value: str | None) -> dict[str, int]:

@@ -92,6 +92,7 @@ VITE_API_URL=http://localhost:8000 npm run dev          # http://localhost:3000
 * Gotcha found while testing: in LiteLLM 1.110.2 every cache hit imports proxy modules that need `orjson` and `soundfile`, and neither is in LiteLLM's base dependencies. Without them every hit raised `ModuleNotFoundError`, so both are pinned explicitly in `requirements.txt`, and the cache-hit tests guard against this coming back.
 * A hit is detected from `response._hidden_params["cache_hit"]`. On a hit the reply text is identical, the tokens are the usage stored with the cached response, `key_id = null` and `fallback_attempts = 0`.
 * `latency_ms` is measured on the server with `time.perf_counter()` from the moment the request arrives. A hit is an in-process memory lookup (a few ms) against a network round trip of hundreds of ms.
+* **Startup warm-up:** LiteLLM loads its cache-hit code lazily, so the first hit after a start took ~1 s on Render's small free instance, which could be slower than a live call. On startup the backend runs one store and one hit through the cache with LiteLLM's `mock_response` (no network call, no key), then empties the cache. Every hit, including the first, is a few ms.
 
 ### SQLite session storage
 * Stdlib `sqlite3`, one short-lived connection per operation, WAL mode. The schema is created on startup (`CREATE TABLE IF NOT EXISTS`), at the path given by `DATABASE_URL` (`sqlite:////data/app.db` in Docker, on the named volume `app-data`).

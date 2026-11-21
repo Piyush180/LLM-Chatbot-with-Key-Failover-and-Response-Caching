@@ -15,7 +15,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import Settings
 from .db import Database
-from .llm import AllProvidersUnavailable, KeyPool, enable_cache, parse_simulation_header
+from .llm import (AllProvidersUnavailable, KeyPool, enable_cache, parse_simulation_header,
+                  warm_up_cache)
 from .schemas import ChatMetadata, ChatRequest, ChatResponse, HealthResponse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -31,6 +32,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(_: FastAPI):
         db.init()
         enable_cache()
+        await warm_up_cache(settings.model)
         logger.info(
             "started: model=%s keys=%d simulation=%s",
             settings.model, len(pool), settings.enable_failure_simulation,
