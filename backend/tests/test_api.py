@@ -42,7 +42,7 @@ def test_live_inference_response_shape(client):
     meta = body["metadata"]
     assert META_FIELDS <= meta.keys()
     assert meta["resolution_source"] == "LIVE_INFERENCE"
-    assert meta["model"] == "gemini/gemini-2.5-flash"
+    assert meta["model"] == "groq/openai/gpt-oss-120b"
     assert meta["key_id"] == "key_1"
     assert meta["fallback_attempts"] == 0
     for field in ("latency_ms", "input_tokens", "output_tokens"):

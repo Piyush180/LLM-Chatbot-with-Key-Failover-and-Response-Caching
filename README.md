@@ -1,6 +1,6 @@
 # LLM Chatbot with Key Failover and Response Caching
 
-React (Vite) frontend · FastAPI backend · LiteLLM gateway (Gemini) · SQLite storage.
+React (Vite) frontend · FastAPI backend · LiteLLM gateway (Groq) · SQLite storage.
 
 ```
 /backend             FastAPI app (app/), pytest suite (tests/), multi-stage Dockerfile
@@ -26,7 +26,7 @@ render.yaml          Render blueprint for the backend
 ### With Docker
 
 ```bash
-cp .env.example .env        # then put two real Gemini keys in LLM_API_KEYS
+cp .env.example .env        # then put two real Groq keys in LLM_API_KEYS
 make up                     # backend http://localhost:8000, frontend http://localhost:3000
 make down                   # stop (SQLite history in the app-data volume is kept)
 make test                   # optional: run the backend tests in Docker
@@ -59,7 +59,7 @@ VITE_API_URL=http://localhost:8000 npm run dev          # http://localhost:3000
 | Variable | Meaning | Default |
 |---|---|---|
 | `LLM_API_KEYS` | Comma-separated key pool (≥ 2). Ids are `key_1`, `key_2`, … in order | — |
-| `LLM_MODEL` | LiteLLM model name for every key | `gemini/gemini-2.5-flash` (`gemini-2.0-flash` from the PDF's example is no longer served to new keys) |
+| `LLM_MODEL` | LiteLLM model name for every key | `groq/openai/gpt-oss-120b` (any LiteLLM model string works, e.g. `gemini/...`) |
 | `DATABASE_URL` | SQLite location | `sqlite:///./data/app.db` (Docker: `sqlite:////data/app.db`) |
 | `ALLOWED_ORIGINS` | Comma-separated CORS origins | `http://localhost:3000` |
 | `ENABLE_FAILURE_SIMULATION` | `true` enables `X-Simulate-Failure` | `false` |
@@ -76,7 +76,7 @@ VITE_API_URL=http://localhost:8000 npm run dev          # http://localhost:3000
 
 ### Key fallback
 * `backend/app/llm.py` → `KeyPool.complete()` walks the pool **in order** (`key_1`, `key_2`, …). Each attempt is one `litellm.acompletion(model, messages, api_key=<key>, num_retries=0, max_retries=0, timeout=…)` call.
-* LiteLLM's own retries are switched off, so every failure comes back to the pool straight away. Any LiteLLM exception moves on to the next key. That covers `RateLimitError` (HTTP 429, including Gemini's `RESOURCE_EXHAUSTED` quota errors), 5xx (`InternalServerError`, `ServiceUnavailableError`, …), timeouts, connection errors and also auth errors. A single bad key never takes the chat down.
+* LiteLLM's own retries are switched off, so every failure comes back to the pool straight away. Any LiteLLM exception moves on to the next key. That covers `RateLimitError` (HTTP 429, including the provider's quota / rate-limit errors), 5xx (`InternalServerError`, `ServiceUnavailableError`, …), timeouts, connection errors and also auth errors. A single bad key never takes the chat down.
 * `fallback_attempts` is the number of keys that failed before the one that answered. `key_id` names the key that answered; the key itself is never returned. Logs record only the key id and status code, never the provider's error message, because that message can include the key.
 * When every key fails, the backend returns `503 {"detail": "all providers unavailable"}` and writes nothing to SQLite.
 * **`X-Simulate-Failure`** (honoured only when `ENABLE_FAILURE_SIMULATION=true`): the header is parsed into `{key_id: status}`; `*` means every key, and a named key overrides `*`. Malformed pairs and statuses other than 429/500/502/503 are ignored. A targeted key raises a `SimulatedProviderError` instead of calling the provider, inside the same `try/except` path as a real error. That makes the simulation exercise exactly the real failover code, for that one request only.

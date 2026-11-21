@@ -39,11 +39,11 @@ class FakeProvider:
 
 
 def rate_limit() -> Exception:
-    return litellm.RateLimitError(message="quota exceeded", llm_provider="gemini", model="gemini-2.0-flash")
+    return litellm.RateLimitError(message="quota exceeded", llm_provider="groq", model="openai/gpt-oss-120b")
 
 
 def server_error() -> Exception:
-    return litellm.InternalServerError(message="boom", llm_provider="gemini", model="gemini-2.0-flash")
+    return litellm.InternalServerError(message="boom", llm_provider="groq", model="openai/gpt-oss-120b")
 
 
 @pytest.fixture
@@ -56,7 +56,7 @@ def provider(monkeypatch: pytest.MonkeyPatch) -> FakeProvider:
 def make_settings(tmp_path, **overrides) -> Settings:
     values = dict(
         api_keys=KEYS,
-        model="gemini/gemini-2.5-flash",
+        model="groq/openai/gpt-oss-120b",
         database_path=str(tmp_path / "app.db"),
         allowed_origins=["http://localhost:3000"],
         enable_failure_simulation=True,
